@@ -1,0 +1,12 @@
+[
+  { "id": "vo-hook", "text": "What if you could trade your favorite artist?" },
+  { "id": "vo-meet", "text": "Meet Sonotrade. The market for music." },
+  { "id": "vo-index", "text": "Every artist has a live index. Driven by streams, search, and culture." },
+  { "id": "vo-culture", "text": "Culture moves. Now you can trade it." },
+  { "id": "vo-artist", "text": "Open any artist, and watch their index move in real time." },
+  { "id": "vo-releases", "text": "Every release, right on the chart, can move the index." },
+  { "id": "vo-updown", "text": "Go long. Or go short." },
+  { "id": "vo-trade", "text": "Back your call in seconds." },
+  { "id": "vo-portfolio", "text": "And track every position, live." },
+  { "id": "vo-cta", "text": "This is Sonotrade." }
+]

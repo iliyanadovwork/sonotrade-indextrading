@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+/* Sonotrade design tokens — mirrors frontend/app/globals.css */
+:root {
+  --st-black: rgb(10, 10, 10);
+  --st-white: #ffffff;
+  --st-secondary: #808080;
+  --st-muted: #808080;
+  --st-positive: #04df9d;
+  --st-chart-positive: #04df9d;
+  --st-chart-negative: #ff4b4b;
+  --st-border: #27272a;
+  --st-border-strong: #3f3f46;
+  --st-surface-raised: #18181b;
+}
+
+@theme inline {
+  --color-st-black: var(--st-black);
+  --color-st-white: var(--st-white);
+  --color-st-secondary: var(--st-secondary);
+  --color-st-muted: var(--st-muted);
+  --color-st-positive: var(--st-positive);
+  --color-st-chart-positive: var(--st-chart-positive);
+  --color-st-chart-negative: var(--st-chart-negative);
+  --color-st-border: var(--st-border);
+  --color-st-border-strong: var(--st-border-strong);
+  --color-st-surface-raised: var(--st-surface-raised);
+}

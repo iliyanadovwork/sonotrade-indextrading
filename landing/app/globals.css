@@ -1,0 +1,147 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+
+  /* Sonotrade UI — aligned to former zinc / app accents */
+  --st-white: #ffffff;
+  --st-black: rgb(10, 10, 10);
+  --st-secondary: #a1a1aa;
+  --st-muted: #71717a;
+  --st-foreground: #000000;
+  --st-positive: #04df9d;
+  /* Chart line up/down */
+  --st-chart-positive: #04df9d;
+  --st-chart-negative: #FF4B4B;
+  --st-white-muted: rgba(255, 255, 255, 0.6);
+  --st-white-overlay-12: rgba(255, 255, 255, 0.12);
+  --st-border: #27272a;
+  --st-border-strong: #3f3f46;
+  --st-surface-raised: #18181b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  --color-st-white: var(--st-white);
+  --color-st-black: var(--st-black);
+  --color-st-secondary: var(--st-secondary);
+  --color-st-muted: var(--st-muted);
+  --color-st-foreground: var(--st-foreground);
+  --color-st-positive: var(--st-positive);
+  --color-st-chart-positive: var(--st-chart-positive);
+  --color-st-chart-negative: var(--st-chart-negative);
+  --color-st-white-muted: var(--st-white-muted);
+  --color-st-white-overlay-12: var(--st-white-overlay-12);
+  --color-st-border: var(--st-border);
+  --color-st-border-strong: var(--st-border-strong);
+  --color-st-surface-raised: var(--st-surface-raised);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: rgb(10, 10, 10);
+    --foreground: #ededed;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: rgb(10, 10, 10);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.header-left-section {
+  display: flex;
+  align-items: center;
+  user-select: none;
+  transform: scale(1);
+  transform-origin: left center;
+}
+
+@media (max-width: 768px) {
+  .header-left-section {
+    transform: scale(0.9);
+  }
+}
+
+@keyframes sxDotPulse {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+
+@keyframes candleReveal {
+  from { transform: translateY(32px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes headerRainbowShimmer {
+  0%   { background-position: 100% center }
+  100% { background-position: 0% center }
+}
+
+.header-rainbow-text {
+  background: linear-gradient(
+    90deg,
+    #a1a1aa 0%,
+    #a1a1aa 60%,
+    #b8a0d4 68%,
+    #c084fc 74%,
+    #60a5fa 82%,
+    #7ec8e3 88%,
+    #a1a1aa 96%,
+    #a1a1aa 100%
+  );
+  background-size: 1000% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: headerRainbowShimmer 4s linear infinite;
+}
+
+@keyframes blink-green {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.animate-blink-green {
+  animation: blink-green 2s ease-in-out infinite;
+}
+
+button {
+  cursor: pointer !important;
+}
+
+button:disabled {
+  cursor: not-allowed !important;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes artist-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.artist-fade-in {
+  animation: artist-fade-in 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}

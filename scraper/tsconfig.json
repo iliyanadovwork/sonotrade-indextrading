@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "types": ["node"],
+    "noEmit": true,
+    // Node's ESM resolver wants explicit .ts specifiers here (tsx executes
+    // them directly; nothing is compiled to .js).
+    "allowImportingTsExtensions": true
+  },
+  "include": ["src"]
+}

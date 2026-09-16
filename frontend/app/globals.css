@@ -1,0 +1,380 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #000000;
+
+  /* Shared horizontal inset for header chrome + page body (beside the side
+     rail on md+). Keep header and main content on the same gutter so auth
+     buttons, home columns, discover, and profiles align — do not invent
+     one-off px-* on each page. Escape with `.st-page-bleed` only for true
+     full-bleed media. */
+  --st-page-gutter-x: 1rem;
+
+  /* Pauv UI — aligned to former zinc / app accents */
+  --st-white: #ffffff;
+  --st-black: rgb(10,10,10);
+  --st-secondary: #808080;
+  --st-muted: var(--st-secondary);
+  --st-foreground: #000000;
+  --st-positive: #04df9d;
+  /* Chart line up/down */
+  --st-chart-positive: #04df9d;
+  --st-chart-negative: #FF4B4B;
+  /* Filled success surface (the post-trade confirmation card). A shade below
+     --st-positive: that value is tuned for thin marks — arrows, chart strokes,
+     small numerals — and reads too bright across a whole panel. */
+  --st-success-surface: #04c48a;
+  --st-white-muted: rgba(255, 255, 255, 0.6);
+  --st-white-overlay-12: rgba(255, 255, 255, 0.12);
+  --st-white-overlay-10: rgba(255, 255, 255, 0.1);
+  --st-surface-hover: #0d0d0d;
+  --st-border: #27272a;
+  --st-border-strong: #3f3f46;
+  --st-surface-raised: #131313;
+  --font-geist-sans: var(--font-inter);
+  --font-geist-mono: var(--font-inter);
+}
+
+@media (min-width: 768px) {
+  :root {
+    --st-page-gutter-x: 1.5rem;
+  }
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-inter);
+
+
+  --color-st-white: var(--st-white);
+  --color-st-black: var(--st-black);
+  --color-st-secondary: var(--st-secondary);
+  --color-st-muted: var(--st-muted);
+  --color-st-foreground: var(--st-foreground);
+  --color-st-positive: var(--st-positive);
+  --color-st-chart-positive: var(--st-chart-positive);
+  --color-st-success-surface: var(--st-success-surface);
+  --color-st-chart-negative: var(--st-chart-negative);
+  --color-st-white-muted: var(--st-white-muted);
+  --color-st-white-overlay-12: var(--st-white-overlay-12);
+  --color-st-white-overlay-10: var(--st-white-overlay-10);
+  --color-st-surface-hover: var(--st-surface-hover);
+  --color-st-border: var(--st-border);
+  --color-st-border-strong: var(--st-border-strong);
+  --color-st-surface-raised: var(--st-surface-raised);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: rgb(10,10,10);
+    --foreground: #ededed;
+  }
+}
+
+/* Smooth scrolling for in-page anchor navigation (/how-it-works) ONLY.
+   Unconditional `html { scroll-behavior: smooth }` also makes Chrome ANIMATE
+   scroll restoration on refresh — the page visibly glides from the top down
+   to the restored position every reload. Scoping to :focus-within limits the
+   smoothness to clicks on anchor links (the link keeps focus while the jump
+   happens); on load/restore nothing is focused, so restoration is instant. */
+@media (prefers-reduced-motion: no-preference) {
+  html:focus-within {
+    scroll-behavior: smooth;
+  }
+}
+
+html {
+  background-color: rgb(10,10,10);
+  /* Was `zoom: 0.90`. The design tokens are authored ~11% larger than the
+     intended rendering size; zoom was a one-line way to shrink the whole
+     document to compensate. It also made every geometry API engine-dependent
+     (getBoundingClientRect reports visual px in Blink but layout px in
+     WebKit), which is the root of a family of Safari-only bugs.
+
+     A 90% root font-size reproduces the SAME scale for everything sized in
+     `rem` — which is Tailwind's whole spacing and type scale — without
+     perturbing any coordinate space. 0.9 x 16px = 14.4px root, so `p-4`
+     (1rem) renders at 14.4px, exactly as `zoom: 0.9` rendered 16px.
+
+     Lengths hardcoded in px do NOT follow the root font-size, so they are
+     converted to rem as part of this change. */
+  font-size: 90%;
+  min-height: 100vh;
+  /* Kill the macOS/iOS rubber-band bounce past the top and bottom of the page.
+     This MUST live on `html`, not `body`: the UA takes the viewport's
+     overscroll-behavior from the *root element*, and — unlike `overflow` — the
+     property is deliberately NOT propagated from `body`. It sat on `body` until
+     2026-07-25 and therefore did nothing. Note this also disables pull-to-
+     refresh on mobile browsers, which matches the app-like feel we want. */
+  overscroll-behavior: none;
+  /* Reserve the scrollbar gutter from first paint. Without this, a page that
+     starts within the viewport and then grows past it (client content mounting:
+     live data, comments, open positions) makes the scrollbar appear *after*
+     paint, narrowing every content column by the scrollbar width. On the
+     profile page that reflows the price chart's container → CHART_W shrinks →
+     the whole x-axis rescales and the line visibly "shifts" right after it
+     draws. Reserving the gutter keeps the width stable across that transition. */
+  scrollbar-gutter: stable;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-inter), ui-monospace, monospace;
+  display: flex;
+  flex-direction: column;
+  /* overscroll-behavior moved to `html` — see the note there. */
+  min-height: 100vh;
+}
+
+/* Horizontal page inset — applied by the app shell on md+ (when the side
+   rail is visible). Matches the desktop header gutter via --st-page-gutter-x. */
+@media (min-width: 768px) {
+  .st-page-x {
+    padding-left: var(--st-page-gutter-x);
+    padding-right: var(--st-page-gutter-x);
+  }
+
+  /* Opt out of the shell gutter for true full-bleed media inside the page
+     body (hero images, edge-to-edge strips). */
+  .st-page-bleed {
+    margin-left: calc(-1 * var(--st-page-gutter-x));
+    margin-right: calc(-1 * var(--st-page-gutter-x));
+    width: calc(100% + 2 * var(--st-page-gutter-x));
+  }
+}
+
+.header-left-section {
+  display: flex;
+  align-items: center;
+  user-select: none;
+  transform: scale(1);
+  transform-origin: left center;
+}
+
+@media (max-width: 768px) {
+  .header-left-section {
+    transform: scale(0.9);
+  }
+
+  /* Hide page-level scrollbar indicator on mobile */
+  body {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  body::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Prevent iOS Safari from zooming on input focus */
+  input, select, textarea {
+    font-size: 16px;
+  }
+
+  /* Press-to-shrink on all tappable elements */
+  button:not([disabled]),
+  a {
+    -webkit-tap-highlight-color: transparent;
+    transform-origin: center;
+  }
+
+  button:not([disabled]):active,
+  a:active {
+    transform: scale(0.95) !important;
+    transition: transform 60ms ease !important;
+  }
+
+}
+
+/* Sticky right-rail trading panel on profile pages — hide the internal
+   scrollbar when the panel is taller than the available viewport height. */
+.profile-panel-sticky {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.profile-panel-sticky::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes sxDotPulse {
+  0%   { transform: scale(1); opacity: 0.8; }
+  100% { transform: scale(3.2); opacity: 0; }
+}
+
+/* Like-button heart pop when tapped */
+@keyframes heartPop {
+  0%   { transform: scale(1); }
+  35%  { transform: scale(1.35); }
+  70%  { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.heart-pop {
+  animation: heartPop 300ms ease-out;
+}
+
+@keyframes candleReveal {
+  from { transform: translateY(32px); opacity: 0; }
+  to   { transform: translateY(0); opacity: 1; }
+}
+
+@keyframes headerRainbowShimmer {
+  0%   { background-position: 100% center }
+  100% { background-position: 0% center }
+}
+
+.header-rainbow-text {
+  background: linear-gradient(
+    90deg,
+    var(--st-secondary) 0%,
+    var(--st-secondary) 60%,
+    #b8a0d4 68%,
+    #c084fc 74%,
+    #60a5fa 82%,
+    #7ec8e3 88%,
+    var(--st-secondary) 96%,
+    var(--st-secondary) 100%
+  );
+  background-size: 1000% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: headerRainbowShimmer 4s linear infinite;
+}
+
+@keyframes blink-green {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.4;
+  }
+}
+
+.animate-blink-green {
+  animation: blink-green 2s ease-in-out infinite;
+}
+
+@keyframes arrow-pop-up   { 0% { opacity: 1; transform: translateY(0);   } 100% { opacity: 0; transform: translateY(-6px); } }
+@keyframes arrow-pop-down { 0% { opacity: 1; transform: translateY(0);   } 100% { opacity: 0; transform: translateY(6px);  } }
+.arrow-pop-up   { animation: arrow-pop-up   700ms ease-out forwards; }
+.arrow-pop-down { animation: arrow-pop-down 700ms ease-out forwards; }
+
+button {
+  cursor: pointer !important;
+}
+
+button:disabled {
+  cursor: not-allowed !important;
+}
+
+/* Remove number input spinners */
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type=number] { -moz-appearance: textfield; }
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+@keyframes artist-fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.artist-fade-in {
+  animation: artist-fade-in 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+@layer components {
+  .btn-primary {
+    @apply min-h-[36px] rounded-full bg-white px-4 py-1 text-sm font-medium text-black transition-all duration-75 hover:opacity-80 active:scale-90 disabled:cursor-not-allowed disabled:opacity-50;
+  }
+
+  .modal-dialog {
+    @apply bg-black border border-st-white-overlay-10 rounded-lg p-4;
+  }
+}
+
+
+/* ── Panel slide animations ──────────────────────────────────────────────── */
+@keyframes profilePanelIn  { from { transform: translateX(100%); } to { transform: translateX(0); } }
+@keyframes profilePanelOut { from { transform: translateX(0); }    to { transform: translateX(100%); } }
+@keyframes profilePageUp   { from { transform: translateY(100%); } to { transform: translateY(0); } }
+@keyframes profilePageDown { from { transform: translateY(0); }    to { transform: translateY(100%); } }
+
+/* ── Slideshow / widget animations ──────────────────────────────────────── */
+@keyframes sxSlideInRight { from { transform: translateX(32px);  opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes sxSlideInLeft  { from { transform: translateX(-32px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes sx-slide-from-right { from { transform: translateX(48px);  opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+@keyframes sx-slide-from-left  { from { transform: translateX(-48px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+.sx-slide-right { animation: sx-slide-from-right 0.28s cubic-bezier(0.25,0.46,0.45,0.94) both; }
+.sx-slide-left  { animation: sx-slide-from-left  0.28s cubic-bezier(0.25,0.46,0.45,0.94) both; }
+
+@keyframes livePulse     { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+@keyframes gallery-fade-in  { from { opacity: 0; } to { opacity: 1; } }
+@keyframes gallery-fade-out { from { opacity: 1; } to { opacity: 0; } }
+
+/* Self-drawing glyph loader (SXGlyphDrawLoader).
+   Spike draws (0-20.5%), bar draws across (20.5-60%), the glyph holds, then the
+   whole group FADES via group opacity (69.5-95.8%). Group opacity flattens the
+   two overlapping strokes into ONE layer before fading, so the shared caps /
+   crossing don't compound and brighten (per-path stroke-opacity does). The dash
+   resets to hidden WHILE the group is invisible (95.8->95.9%) and stays hidden
+   across the loop wrap, so opacity returning to 1 at the restart reveals nothing
+   -- no one-frame flash of the drawn glyph. NO will-change, so the opacity stays
+   on the main thread in step with the dash (no compositor desync).
+   Duration: --sx-glyph-draw-dur. */
+@keyframes sxGlyphDrawFade {
+  0%, 69.5%   { opacity: 1; }
+  95.8%, 100% { opacity: 0; }
+}
+@keyframes sxGlyphDrawSpike {
+  0%    { stroke-dashoffset: 956; }
+  20.5% { stroke-dashoffset: 0; }
+  95.8% { stroke-dashoffset: 0; }
+  95.9% { stroke-dashoffset: 956; }
+  100%  { stroke-dashoffset: 956; }
+}
+@keyframes sxGlyphDrawBar {
+  0%    { stroke-dashoffset: 1725; }
+  20.5% { stroke-dashoffset: 1725; }
+  60%   { stroke-dashoffset: 0; }
+  95.8% { stroke-dashoffset: 0; }
+  95.9% { stroke-dashoffset: 1725; }
+  100%  { stroke-dashoffset: 1725; }
+}
+.sx-glyph-draw__glyph {
+  animation: sxGlyphDrawFade var(--sx-glyph-draw-dur, 0.8s) cubic-bezier(.65, 0, .35, 1) infinite;
+}
+.sx-glyph-draw__stroke {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 74;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.sx-glyph-draw__spike {
+  stroke-dasharray: 956 100000;
+  stroke-dashoffset: 956;
+  animation: sxGlyphDrawSpike var(--sx-glyph-draw-dur, 0.8s) cubic-bezier(.32, 0, .67, 0) infinite;
+}
+.sx-glyph-draw__bar {
+  stroke-dasharray: 1725 100000;
+  stroke-dashoffset: 1725;
+  animation: sxGlyphDrawBar var(--sx-glyph-draw-dur, 0.8s) cubic-bezier(.33, 1, .68, 1) infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .sx-glyph-draw__glyph { animation: none; opacity: 1; }
+  .sx-glyph-draw__spike,
+  .sx-glyph-draw__bar { animation: none; stroke-dashoffset: 0; }
+}

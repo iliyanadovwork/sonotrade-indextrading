@@ -1,0 +1,54 @@
+name: Daily artist index scrape
+
+# Manual-only for now: the sonotrade/index repo's daily Action (13:00 UTC,
+# Apify monthly-listeners) is the canonical feed and updates the full catalog,
+# new listings included. Re-add the `schedule:` trigger only as part of a
+# deliberate switch to this tiered pipeline — running both double-writes
+# data_points with conflicting index math.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Compute + log only, write nothing'
+        type: boolean
+        default: false
+      limit:
+        description: 'Max artists (0 = all)'
+        default: '0'
+
+concurrency:
+  group: scraper
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: scraper
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - run: npm install
+      - run: npm test
+      - name: Scrape + ingest
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          # Flip to 'apify' (and set APIFY_TOKEN) if Spotify starts blocking
+          # GitHub's datacenter IPs — the run fails loudly at >20% misses.
+          SIGNAL_SOURCE: ${{ vars.SIGNAL_SOURCE || 'meta' }}
+          APIFY_TOKEN: ${{ secrets.APIFY_TOKEN }}
+          # Only the traded tier is scraped on a schedule (scope=hot). Those
+          # N artists get EXACT counts from Apify: 50/day ≈ $7.50/mo at
+          # $0.005 each. Everyone else refreshes lazily via
+          # POST /api/artists/refresh when their profile is opened.
+          SCRAPE_SCOPE: ${{ vars.SCRAPE_SCOPE || 'hot' }}
+          APIFY_TOP_N: ${{ vars.APIFY_TOP_N || '50' }}
+          INDEX_SENSITIVITY: ${{ vars.INDEX_SENSITIVITY || '1.0' }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '' }}
+          LIMIT: ${{ inputs.limit || '0' }}
+        run: npm run scrape

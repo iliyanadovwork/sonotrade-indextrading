@@ -1,0 +1,73 @@
+name: Frontend CI
+
+on:
+  push:
+    branches: [main]
+    paths: ['frontend/**', '.github/workflows/frontend-ci.yml']
+  pull_request:
+    paths: ['frontend/**', '.github/workflows/frontend-ci.yml']
+  workflow_dispatch:
+
+jobs:
+  # Fast static checks — no secrets, no network beyond npm.
+  checks:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Type check
+        run: npx tsc --noEmit
+      - name: Unit tests (vitest)
+        run: npm run test
+
+  # Full browser journeys against a dev server pointed at the live Supabase
+  # project (READ-ONLY specs — see playwright.config.ts). Requires these
+  # repo secrets (Settings → Secrets and variables → Actions):
+  #   SUPABASE_URL                — https://<ref>.supabase.co
+  #   SUPABASE_PUBLISHABLE_KEY    — the sb_publishable_… anon key
+  #   SUPABASE_SERVICE_ROLE_KEY   — server-side key (API routes need it)
+  # Until they exist this job fails at "Playwright e2e"; `checks` is
+  # independent and stays green.
+  e2e:
+    needs: checks
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.SUPABASE_PUBLISHABLE_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      # CI-only signing secret (≥32 chars — lib/auth.ts enforces it). The e2e
+      # suite never logs in for real, so this signs nothing that matters.
+      JWT_SECRET: ci-only-jwt-secret-0123456789abcdefghij
+      APP_BASE_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+      - name: Playwright e2e
+        run: npx playwright test
+      - name: Upload traces on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-traces
+          path: frontend/test-results/
+          retention-days: 7

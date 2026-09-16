@@ -1,0 +1,52 @@
+# AWS Amplify Hosting Compute build manifest for the Sonotrade app.
+#
+# Env vars come from Amplify Console → "Manage environment variables".
+# Sensitive values (Supabase service role, JWT signing secret, Resend, Apify,
+# Spotify client secret) should live in Amplify-integrated AWS Secrets Manager;
+# non-sensitive values (public Supabase URL, base URL) are plain env values.
+#
+# IMPORTANT: Amplify Hosting Compute does not reliably forward Console env
+# vars to the SSR Lambda runtime. We bake them into .env.production before
+# `next build` so Next.js packages them with the server bundle. The grep
+# allowlist below must include every var the app reads via process.env at
+# runtime — a var missing from this list is `undefined` in production with no
+# error, which is how JWT_SECRET and REDIS_URL silently fell back to insecure
+# defaults (forgeable tokens, and rate limiting/locking that never engaged).
+#
+# CAVEAT (tracked, not yet fixed): baking secrets into .env.production means
+# they persist in the build cache and any downloaded artifact, and rotating one
+# requires a full rebuild. The durable fix is to read secrets at runtime from
+# Secrets Manager, or to move hosting to a platform that forwards env to the
+# server runtime. Do not add a new secret here without noting that trade-off.
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # --legacy-peer-deps masks a real peer-dependency conflict and means CI
+        # installs a tree package-lock.json does not guarantee. Resolve the
+        # underlying conflict and drop this flag.
+        - npm ci --legacy-peer-deps
+    build:
+      commands:
+        # Fail the build rather than deploy an app whose auth secret is absent:
+        # lib/auth.ts throws on a missing JWT_SECRET, so without this check the
+        # failure would surface as a 500 on the first authenticated request.
+        - test -n "$JWT_SECRET" || (echo "FATAL: JWT_SECRET is not set in the Amplify environment" && exit 1)
+        - test -n "$SUPABASE_SERVICE_ROLE_KEY" || (echo "FATAL: SUPABASE_SERVICE_ROLE_KEY is not set" && exit 1)
+        - env | grep -E '^(NEXT_PUBLIC_|SUPABASE_|JWT_SECRET=|REDIS_URL=|SPOTIFY_|APIFY_TOKEN=|RESEND_|FROM_EMAIL=|APP_BASE_URL=|SITE_URL=|OPS_SLACK_WEBHOOK_URL=|CRON_SECRET=|NEWSDATA_API_KEY=|GIPHY_)' >> .env.production
+        # Typecheck and unit tests gate the deploy. Full-tree `npm run lint` is
+        # deliberately NOT here: the repo carries ~147 pre-existing lint errors
+        # that would block every deploy. CI lints changed files per push
+        # instead (.github/workflows/ci.yml).
+        - npm run typecheck
+        - npm test -- --run
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - "**/*"
+  cache:
+    paths:
+      - .next/cache/**/*
+      - node_modules/**/*
